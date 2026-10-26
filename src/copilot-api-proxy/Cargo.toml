@@ -1,0 +1,56 @@
+[package]
+name = "copilot-api-proxy"
+version = "0.1.0"
+edition = "2024"
+description = "A reverse proxy server for GitHub Copilot API with OpenAI-compatible endpoints"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.42", features = ["full"] }
+
+# Web framework
+axum = { version = "0.8" }
+tower = { version = "0.5", features = ["timeout"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "limit"] }
+
+# HTTP client
+reqwest = { version = "0.13", features = ["form", "json", "stream"] }
+
+# Serialization (minimal - only for auth responses and error formatting)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_urlencoded = "0.7"
+urlencoding = "2"
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration
+dotenvy = "0.15"
+dirs = "6.0"
+uuid = { version = "1.18", features = ["v4"] }
+
+# Async streaming
+futures = "0.3"
+
+# Gzip decompression (for Amp CLI compressed bodies)
+flate2 = "1"
+
+# Token counting
+tiktoken-rs = "0.9"
+
+# Service management
+service-manager = "0.10"
+
+[[bin]]
+name = "copilot-api-proxy"
+path = "src/main.rs"

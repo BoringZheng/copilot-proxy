@@ -1,0 +1,25 @@
+# Runtime state and credentials must never be versioned.
+.env
+.env.*
+!.env.example
+secrets/
+runtime/
+backups/
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.pem
+*.key
+github_token
+secrets.json
+auth.json
+id_rsa*
+id_ed25519*
+**/target/
+**/node_modules/
+**/dist/
+**/__pycache__/
+*.pyc
+.DS_Store
+

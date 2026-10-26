@@ -1,0 +1,89 @@
+x-proxy: &proxy
+  image: ${COMPOSE_PROJECT_NAME:-copilot-proxy}-copilot:local
+  build:
+    context: .
+    dockerfile: deploy/Dockerfile.copilot
+    args:
+      BUILD_JOBS: ${BUILD_JOBS:-2}
+  restart: unless-stopped
+  init: true
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: [/tmp:rw,noexec,nosuid,size=32m]
+  environment:
+    TZ: ${TZ:-Asia/Shanghai}
+  networks: [backend]
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+  healthcheck:
+    test: [CMD, wget, -q, -T, "15", -O, /dev/null, http://127.0.0.1:9876/v1/models]
+    interval: 60s
+    timeout: 20s
+    retries: 3
+    start_period: 30s
+
+services:
+  copilot-primary:
+    <<: *proxy
+    volumes: [copilot-primary-home:/home/proxy]
+
+  copilot-secondary:
+    <<: *proxy
+    profiles: [secondary]
+    volumes: [copilot-secondary-home:/home/proxy]
+
+  new-api:
+    image: ${COMPOSE_PROJECT_NAME:-copilot-proxy}-new-api:local
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.new-api
+      args:
+        BUILD_JOBS: ${BUILD_JOBS:-2}
+    restart: unless-stopped
+    init: true
+    depends_on:
+      copilot-primary:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${NEW_API_PORT:-3000}:3000"
+    volumes: [new-api-data:/data]
+    secrets: [session_secret, crypto_secret]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SQLITE_PATH: /data/one-api.db
+      DISABLE_RESPONSES_WEB_SEARCH_MODELS: ${DISABLE_RESPONSES_WEB_SEARCH_MODELS:-gemini-4-argon}
+      ARGON_RESPONSES_IMAGE_BUDGET: ${ARGON_RESPONSES_IMAGE_BUDGET:-10}
+      COPILOT_PROXY_BODY_LIMIT_ORIGIN: http://copilot-primary:9876,http://copilot-secondary:9876
+      COPILOT_PROXY_MAX_REQUEST_BODY_BYTES: "33554432"
+      COPILOT_RESPONSES_LEGACY_MESSAGE_ID_ORIGIN: http://copilot-primary:9876,http://copilot-secondary:9876
+    networks: [backend]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: [CMD, wget, -q, -T, "5", -O, /dev/null, http://127.0.0.1:3000/api/status]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  backend: {}
+
+volumes:
+  copilot-primary-home: {}
+  copilot-secondary-home: {}
+  new-api-data: {}
+
+secrets:
+  session_secret:
+    file: ./secrets/session_secret
+  crypto_secret:
+    file: ./secrets/crypto_secret
+

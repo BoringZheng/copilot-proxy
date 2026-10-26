@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.26.9-bookworm AS backend
+ARG BUILD_JOBS=2
+ENV CGO_ENABLED=0 GOWORK=off GOMAXPROCS=2
+WORKDIR /build
+COPY src/new-api/go.mod src/new-api/go.sum ./
+COPY src/new-api/relaykit/go.mod ./relaykit/go.mod
+COPY src/new-api/tokenkit/go.mod ./tokenkit/go.mod
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY src/new-api/ ./
+
+FROM oven/bun:1.4.0 AS frontend
+WORKDIR /build/web
+COPY src/new-api/web/package.json src/new-api/web/bun.lock ./
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
+COPY src/new-api/web/ ./
+COPY src/new-api/VERSION /build/VERSION
+RUN DISABLE_ESLINT_PLUGIN=true VITE_REACT_APP_VERSION=$(cat /build/VERSION) bun run build
+
+FROM backend AS built
+COPY --from=frontend /build/web/dist ./web/dist
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -p "$BUILD_JOBS" -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=v1.0.0-rc.44+copilot-stack.1" -o /build/new-api .
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates tzdata libasan8 wget \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=built /build/new-api /new-api
+COPY src/new-api/LICENSE src/new-api/NOTICE src/new-api/THIRD-PARTY-LICENSES.md /licenses/
+COPY --chmod=755 deploy/new-api-entrypoint.sh /usr/local/bin/new-api-entrypoint
+WORKDIR /data
+EXPOSE 3000
+ENTRYPOINT ["/usr/local/bin/new-api-entrypoint"]
+

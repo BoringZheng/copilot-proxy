@@ -1,0 +1,16 @@
+**
+!src/
+!src/**
+!deploy/
+!deploy/**
+src/**/.git
+src/**/.env
+src/**/.env.*
+src/**/target
+src/**/node_modules
+src/**/dist
+src/**/*.db
+src/**/*.log
+src/**/github_token
+src/**/secrets.json
+

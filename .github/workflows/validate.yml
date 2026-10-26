@@ -1,0 +1,49 @@
+name: Validate deployment repository
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_repository.py
+      - run: python -m unittest discover -s tests -v
+      - run: bash -n scripts/stack.sh && sh -n deploy/new-api-entrypoint.sh
+      - run: bash scripts/stack.sh init && docker compose --profile secondary config --quiet
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [copilot, new-api]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: docker build --build-arg BUILD_JOBS=2 -f deploy/Dockerfile.${{ matrix.component }} -t stack-check:${{ matrix.component }} .
+      - if: matrix.component == 'copilot'
+        run: |
+          docker run --rm stack-check:copilot --help
+          docker volume create check-proxy-home
+          docker run --rm --entrypoint sh -v check-proxy-home:/home/proxy stack-check:copilot -ec 'test "$(id -u)" = 10001; test -w /home/proxy; test ! -e /home/proxy/.local/share/copilot-api-proxy/github_token'
+      - if: matrix.component == 'new-api'
+        run: |
+          bash scripts/stack.sh init
+          docker run -d --name check-new-api -p 127.0.0.1:23000:3000 --mount type=bind,source="$PWD/secrets",target=/run/secrets,readonly stack-check:new-api
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:23000/api/status -o /tmp/status.json; then break; fi
+            sleep 2
+          done
+          python3 -c 'import json; assert json.load(open("/tmp/status.json"))["success"] is True'
+          curl --fail --silent http://127.0.0.1:23000/api/setup -o /tmp/setup.json
+          python3 -c 'import json; assert json.load(open("/tmp/setup.json"))["data"]["status"] is False'
+      - if: failure()
+        run: docker logs check-new-api 2>/dev/null || true
+
