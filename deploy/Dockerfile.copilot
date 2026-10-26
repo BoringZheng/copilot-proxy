@@ -11,8 +11,8 @@ FROM debian:bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata wget \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 10001 proxy \
-    && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/proxy proxy \
+    && groupadd --gid 10001 copilotproxy \
+    && useradd --uid 10001 --gid 10001 --create-home --home-dir /home/proxy copilotproxy \
     && chmod 700 /home/proxy
 COPY --from=build /build/target/release/copilot-api-proxy /usr/local/bin/copilot-api-proxy
 COPY src/copilot-api-proxy/LICENSE /licenses/copilot-api-proxy-LICENSE

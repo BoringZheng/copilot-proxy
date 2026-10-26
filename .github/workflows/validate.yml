@@ -4,12 +4,12 @@ permissions:
   contents: read
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: python scripts/check_repository.py
@@ -17,14 +17,14 @@ jobs:
       - run: bash -n scripts/stack.sh && sh -n deploy/new-api-entrypoint.sh
       - run: bash scripts/stack.sh init && docker compose --profile secondary config --quiet
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         component: [copilot, new-api]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - run: docker build --build-arg BUILD_JOBS=2 -f deploy/Dockerfile.${{ matrix.component }} -t stack-check:${{ matrix.component }} .
