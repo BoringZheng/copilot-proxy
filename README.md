@@ -84,6 +84,16 @@ SSH 不由本仓库配置；如果要公开访问，请单独设置 HTTPS、访�
 不是保护反代的密码。DeepSeek channel 必须在后台填入真正的上游 Key。
 示例模型名不是账号权限保证；先检查实例 `/v1/models`，再按自己的上游调整模型映射。
 
+GPT 示例包含 `gpt-6.1-terra` 和 `gpt-5.6-sol-fast`。Sol Fast 是独立模型 ID，
+客户端应直接选择该模型；不需要设置 `service_tier=priority`。
+Terra 支持 `low/medium/high/xhigh/max`，Sol Fast 还支持 `none`，以实际账号返回为准。
+Codex 客户端使用本地模型目录时，也需要刷新目录才能显示新增模型。
+
+内部计费由各部署自行设置。若沿用本实例的 6.1 Sol 零额度策略，可在 New API 的
+阶梯表达式计费设置中，将这两个模型的 `billing_mode` 设置为 `tiered_expr`，
+`billing_expr` 设置为 `tier("base", p * 0 + c * 0)`。先验证调用日志扣额为 0；
+这只控制 New API 内部额度，不代表上游 Copilot 不计费。示例 channel 不会自动修改价格。
+
 两个账号需要隔离时：
 
 1. 建立 `copilot-secondary` 分组并设置倍率。

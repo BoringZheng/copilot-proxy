@@ -6,7 +6,7 @@
       "type": 1,
       "base_url": "http://copilot-primary:9876",
       "group": "default",
-      "models": "gpt-5.6-sol,gpt-6-astra,gpt-6.1-sol",
+      "models": "gpt-5.6-sol,gpt-6-astra,gpt-6.1-sol,gpt-6.1-terra,gpt-5.6-sol-fast",
       "key": "local-routing-placeholder-not-a-secret"
     },
     {
@@ -14,7 +14,7 @@
       "type": 1,
       "base_url": "http://copilot-secondary:9876",
       "group": "copilot-secondary",
-      "models": "gpt-5.6-sol,gpt-6-astra,gpt-6.1-sol",
+      "models": "gpt-5.6-sol,gpt-6-astra,gpt-6.1-sol,gpt-6.1-terra,gpt-5.6-sol-fast",
       "key": "local-routing-placeholder-not-a-secret"
     },
     {
